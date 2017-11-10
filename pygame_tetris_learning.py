@@ -5,7 +5,6 @@ from collections import deque
 
 import tensorflow as tf
 from dqn import DQN
-from tetris.pygame_tetris import *
 
 input_size = 10 * 23  # 4 ??
 output_size = 4  # 4 LEFT, RIGHT, UP, RETURN
