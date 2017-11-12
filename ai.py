@@ -117,6 +117,7 @@ class AI:
 
         states = []
         new_state = state
+        max_reward = 0
 
         for action in actions:
 
@@ -130,6 +131,9 @@ class AI:
             if self.game.gameover:
                 reward_value = -100
 
+            if reward_value >= max_reward:
+                max_reward = reward_value
+
             next_state = self.game.reshape_board()
 
             if reward_value > 0:
@@ -141,6 +145,13 @@ class AI:
 
             time.sleep(0.5)
 
-            # print(new_state)
+        if max_reward > 0:
+            new_states = []
+            for state in states:
+                temp = list(state)
+                temp[2] = max_reward
+                new_states.append(tuple(temp))
 
-        return states
+            return new_states
+        else:
+            return states
