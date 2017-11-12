@@ -42,6 +42,7 @@
 from random import randrange as rand, randint
 import pygame, sys
 import numpy as np
+from reward import *
 
 # The configuration
 cell_size = 18
@@ -91,6 +92,35 @@ def rotate_clockwise(shape):
             for x in range(len(shape[0]) - 1, -1, -1)]
 
 
+def move_x(stone, stone_x, move):
+    new_x = stone_x + move
+    if new_x < 0:
+        new_x = 0
+    if new_x > cols - len(stone[0]):
+        new_x = cols - len(stone[0])
+
+    return new_x
+
+
+def test_insta_drop(test_board, test_stone, test_stone_x, test_stone_y):
+
+    stone_x = test_stone_x
+    stone_y = test_stone_y
+
+    def test_drop():
+        nonlocal stone_y
+        stone_y = stone_y + 1
+        if check_collision(test_board, test_stone, (stone_x, stone_y)):
+            return True, join_matrixes(test_board, test_stone, (stone_x, stone_y))
+
+        return False, None
+
+    while True:
+        result, reward = test_drop(True)
+        if result:
+            return reward
+
+
 def check_collision(board, shape, offset):
     off_x, off_y = offset
     for cy, row in enumerate(shape):
@@ -123,74 +153,6 @@ def new_board():
     return board
 
 
-class Reward:
-    def __init__(self, aggregate_weight_w=-0.51, lines_w=0.76, holes_w=-0.35, bumpiness_w=-0.18):
-        self._aggregate_weight_w = aggregate_weight_w
-        self._lines_w = lines_w
-        self._holes_w = holes_w
-        self._bumpiness_w = bumpiness_w
-
-    def reward(self, board):
-        return self._aggregate_weight_w * self.aggregate_height(board) + \
-               self._lines_w * self.lines(board) + \
-               self._holes_w * self.holes(board) + \
-               self._bumpiness_w * self.bumpiness(board)
-
-    def column_height(self, board, col):
-        for row in range(rows):
-            if board[row][col] != 0:
-                return rows - row
-
-        return 0
-
-    def aggregate_height(self, board):
-        """
-        score 1
-        그리드가 얼마나 높은지는 말한다. 이를 계산하기 위해, 각 컬럼의 높이를 합한다.
-        :return:
-        """
-        return sum([self.column_height(board, c) for c in range(cols)])
-
-    def holes(self, board):
-        """
-        score 2
-        중간에 비어있는 공간을 말하며, 하나의 타일이 1이다.
-        :return:
-        """
-
-        count = 0
-
-        for c in range(cols):
-            block = False
-            for r in range(rows):
-                if board[r][c] != 0:
-                    block = True
-                elif (board[r][c] == 0) & block:
-                    count += 1
-
-        return count
-
-    def bumpiness(self, board):
-        """
-        score 3
-        우물의 스코어를 구한다
-        인접한 컬럼과의 차이합
-        :return:
-        """
-        return sum([abs(self.column_height(board, col) - self.column_height(board, col+1)) for col in range(cols-1)])
-
-    def lines(self, board):
-        """
-        score 4
-        그리드에서 clear될 라인의 수.
-        :return:
-        """
-        return len([row for row in range(rows) if self.is_line(board, row)])
-
-    def is_line(self, board, row):
-        return 0 not in board[row]
-
-
 class TetrisApp(object):
     def __init__(self, reward):
         pygame.init()
@@ -198,13 +160,15 @@ class TetrisApp(object):
 
         self.reward = reward
 
+        self.cols = 10
+        self.rows = 22
+
         self.width = cell_size * (cols + 6)
         self.height = cell_size * rows
         self.rlim = cell_size * cols
         self.bground_grid = [[8 if x % 2 == y % 2 else 0 for x in range(cols)] for y in range(rows)]
 
-        self.default_font = pygame.font.Font(
-            pygame.font.get_default_font(), 12)
+        self.default_font = pygame.font.Font(pygame.font.get_default_font(), 12)
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.event.set_blocked(pygame.MOUSEMOTION)  # We do not need
@@ -332,7 +296,11 @@ class TetrisApp(object):
                 self.new_stone()
                 cleared_rows = 0
 
-                reward_value = self.reward.reward(self.board)
+                lines = self.reward.lines(self.board)
+
+                print('lines', lines)
+
+                reward_value = lines * 100  # 라인을 클리어하면 보상을. 제거한 라인수 * 100
 
                 while True:
                     for i, row in enumerate(self.board[:-1]):
@@ -346,7 +314,7 @@ class TetrisApp(object):
                 self.add_cl_lines(cleared_rows)
                 return True, reward_value
 
-        return False, None
+        return False, 0
 
     def insta_drop(self):
         if not self.gameover and not self.paused:
@@ -363,6 +331,9 @@ class TetrisApp(object):
                                    (self.stone_x, self.stone_y)):
                 self.stone = new_stone
 
+    def pre_rotate_stone(self, stone):
+        return rotate_clockwise(stone)
+
     def toggle_pause(self):
         self.paused = not self.paused
 
@@ -370,30 +341,6 @@ class TetrisApp(object):
         if self.gameover:
             self.init_game()
             self.gameover = False
-
-    def sample(self):
-        """
-        0:LEFT
-        1:RIGTH
-        2:UP
-        3:RETURN
-        :return:
-        """
-        return randint(0, 3)
-
-    def step(self, action):
-        """
-        행위를 진행한다
-        :param action:
-        :return:
-        """
-        reward_value = self.key_actions[self.actions[action]]()
-
-        if not reward_value:
-            reward_value = 0
-
-        # next_state, reward, done, _
-        return self.reshape_board(), reward_value, self.gameover, None
 
     def reshape_board(self):
         return np.array(self.board).reshape(-1, (rows + 1) * cols)
@@ -455,7 +402,7 @@ Press space to continue""" % self.score)
 
 
 if __name__ == '__main__':
-    tetris_app = TetrisApp(Reward())
+    tetris_app = TetrisApp(GAReward())
     tetris_app.run()
 
     # cols = 10

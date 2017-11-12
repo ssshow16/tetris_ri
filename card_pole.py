@@ -7,9 +7,12 @@ import tensorflow as tf
 from dqn import DQN
 from pygame_tetris import *
 from ai import *
+import gym
 
-input_size = 10 * 23  # 4 ??
-output_size = 4  # 4 LEFT, RIGHT, UP, RETURN
+env = gym.make('CartPole-v0')
+
+input_size = env.observation_space.shape[0]
+output_size = env.action_space.n
 
 dis = 0.9
 REPLAY_MEMORY = 50000
@@ -95,9 +98,6 @@ def replay_train(mainDQN, targetDQN, train_batch):
         if done:
             Q[0, action] = reward
         else:
-
-            print(next_state)
-
             # 네트워크를 통해 새로운 상태에 대한 Q 값을 갱신한다
             Q[0, action] = reward + dis * np.max(targetDQN.predict(next_state))
 
@@ -121,8 +121,8 @@ class Env(threading.Thread):
     def sample(self):
         return self.ai.sample()
 
-    def step(self, state, action):
-        return self.ai.step(state, action)
+    def step(self, action):
+        return self.ai.step(action)
 
     def reset(self):
         return self.game.reset()
@@ -132,9 +132,6 @@ def main():
     num_episodes = 2000
 
     replay_buffer = deque()
-
-    env = Env()
-    env.start()
 
     with tf.Session() as sess:
 
@@ -147,37 +144,35 @@ def main():
         for episode in range(num_episodes):
             e = 1. / ((episode / 10) + 1)
             done = False
-            state = env.reset()
             step_count = 0
+            state = env.reset()
 
             while not done:
                 if np.random.rand(1) < e:
-                    actions = env.sample()
+                    action = env.sample()
                 else:
-                    actions = [np.argmax(mainDQN.predict(state))]  # 리스트로 만들어준다.
-                    print("predict action ", actions)
+                    action = np.argmax(mainDQN.predict(state))
 
-                print("action : ", actions)
+                print("action : ", action)
 
-                # next_state, reward, done, _ = env.step(actions)
-                results = env.step(state, actions)
+                next_state, reward, done, _ = env.step(action)
 
-                if any(state[2] for state in results):
-                    done = True
-                #     reward = -100
+                # print(reward, done)z
+
+                if done:
+                    reward = -10000
 
                 # 학습은 하지 않고 상태를 저장만 한다.
-                replay_buffer.extend(results)
-                # replay_buffer.append((state, action, reward, next_state, done))
+                replay_buffer.append((state, action, reward, next_state, done))
                 if len(replay_buffer) > REPLAY_MEMORY:
                     replay_buffer.popleft()
 
-                state = results[-1][0]
+                state = next_state
                 step_count += 1
                 if step_count > 10000:
                     break
 
-                time.sleep(1)
+                time.sleep(0.01)
 
             print("Episode:{} steps:{} ".format(episode, step_count))
             if step_count > 10000:
