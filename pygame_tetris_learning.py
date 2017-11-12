@@ -141,8 +141,11 @@ def main():
         mainDQN = DQN(sess, input_size, output_size, name="main")
         targetDQN = DQN(sess, input_size, output_size, name="target")
 
-        tf.global_variables_initializer().run()
+        init_op = tf.global_variables_initializer()
+        saver = tf.train.Saver()
+
         copy_ops = get_copy_var_ops(dest_scope_name="target", src_scope_name="main")
+        init_op.run()
 
         for episode in range(num_episodes):
             e = 1. / ((episode / 10) + 1)
@@ -191,6 +194,9 @@ def main():
 
                 print("Loss:", loss)
                 sess.run(copy_ops)
+
+        save_path = saver.save(sess, "dqn_tetris.ckpt")
+        print("Model saved in file: %s" % save_path)
 
         bot_play(mainDQN)
 
