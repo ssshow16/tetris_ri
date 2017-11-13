@@ -345,6 +345,9 @@ class TetrisApp(object):
     def reshape_board(self):
         return np.array(self.board).reshape(-1, (rows + 1) * cols)
 
+    def reshape_board2(self, board):
+        return np.array(board).reshape(-1, (rows + 1) * cols)
+
     def reset(self):
         """
         현재의 상태를 반환해야함

@@ -9,7 +9,8 @@ from pygame_tetris import *
 from ai import *
 
 input_size = 10 * 23  # 4 ??
-output_size = 4  # 4 LEFT, RIGHT, UP, RETURN
+# output_size = 4  # 4 LEFT, RIGHT, UP, RETURN
+output_size = 32  # 3회 LEFT, 제자리, 4회 RIGHT  * 4회 UP ( 7 * 4 ) 조합으로 한다.
 
 dis = 0.9
 REPLAY_MEMORY = 50000
@@ -95,9 +96,6 @@ def replay_train(mainDQN, targetDQN, train_batch):
         if done:
             Q[0, action] = reward
         else:
-
-            print(next_state)
-
             # 네트워크를 통해 새로운 상태에 대한 Q 값을 갱신한다
             Q[0, action] = reward + dis * np.max(targetDQN.predict(next_state))
 
@@ -113,7 +111,7 @@ class Env(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.game = TetrisApp(GAReward())
-        self.ai = AI(input_size=input_size, output_size=output_size, game=self.game)
+        self.ai = AI_2(input_size=input_size, output_size=output_size, game=self.game)
 
     def run(self):
         self.game.run()
@@ -175,7 +173,7 @@ def main():
                 if len(replay_buffer) > REPLAY_MEMORY:
                     replay_buffer.popleft()
 
-                state = results[-1][0]
+                state = results[-1][3]
                 step_count += 1
                 if step_count > 10000:
                     break
