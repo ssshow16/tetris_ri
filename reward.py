@@ -83,6 +83,10 @@ class GAReward(Reward):
     def is_line(self, board, row):
         return 0 not in board[row]
 
+    def board_height(self,board):
+        cols = len(board[0])
+        return max([self.column_height(board,col) for col in range(cols-1)])
+
 if __name__ == '__main__':
     reward = GAReward()
 

@@ -20,12 +20,14 @@ class DQN:
             W1 = tf.get_variable('W1', shape=[self.input_size, h_size],
                                  initializer=tf.contrib.layers.xavier_initializer())
 
-            layer1 = tf.nn.tanh(tf.matmul(self._X, W1))
+            # layer1 = tf.nn.tanh(tf.matmul(self._X, W1))
+            layer1 = tf.nn.relu(tf.matmul(self._X, W1))
 
             W2 = tf.get_variable('W2', shape=[h_size, h_size],
                                  initializer=tf.contrib.layers.xavier_initializer())
 
-            layer2 = tf.nn.tanh(tf.matmul(layer1, W2))
+            # layer2 = tf.nn.tanh(tf.matmul(layer1, W2))
+            layer2 = tf.nn.relu(tf.matmul(layer1, W2))
 
             W3 = tf.get_variable("W3", shape=[h_size, self.output_size],
                                  initializer=tf.contrib.layers.xavier_initializer())
@@ -43,7 +45,10 @@ class DQN:
     def predict(self, state):
         x = np.reshape(state, [1, self.input_size])
         predict_value = self.session.run(self._Qpred, feed_dict={self._X: x})
-        print(predict_value)
+
+        # print('---------------------------')
+        # print('predict_state', state)
+        # print('predict_value', predict_value)
 
         return predict_value
 
