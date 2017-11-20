@@ -188,6 +188,9 @@ class OthelloBoard(Board):
 
     def reset(self):
         self.board = np.zeros((BSIZE, BSIZE), dtype='int32')
+        self.board_state = self.board
+        self.board_state_list = [self.board]
+
         self.movable = np.zeros((BSIZE, BSIZE), dtype='int32')
         self.current_player = 1  # 현재 플래이어 BLACK = 1, WHITE = 2
         self.moves = 0
@@ -203,6 +206,13 @@ class OthelloBoard(Board):
 
     def coord_move(self, point):
         pass
+
+    def valid_moves(self):
+        self._update_movable()
+        ar = np.clip(self.movable, 0, 1).flat  # min 값은 0으로 그 이상은 1로 변경한다
+        idxs = [i for i, v in enumerate(ar) if v != 0]  # 0이 아닌 인덱스를 모은다
+
+        return [divmod(idx, BSIZE) for idx in idxs]
 
     def move(self, x_, y_, dst_=None):
         '''
@@ -253,12 +263,16 @@ def print_board(brd_):
     sys.stdout.flush()
 
 
-if __name__ == '__main__':
-    board = np.zeros((BSIZE, BSIZE), dtype='int32')
-    hsize = BSIZE // 2
-    board[hsize - 1:hsize + 1, hsize - 1:hsize + 1] = [[WHITE, BLACK], [BLACK, WHITE]]
-    movable = np.zeros((BSIZE, BSIZE), dtype='int32')
-
-    _update_movable(board, movable, 1)
-
-    print(movable)
+# if __name__ == '__main__':
+#     # board = np.zeros((BSIZE, BSIZE), dtype='int32')
+#     # hsize = BSIZE // 2
+#     # board[hsize - 1:hsize + 1, hsize - 1:hsize + 1] = [[WHITE, BLACK], [BLACK, WHITE]]
+#     # movable = np.zeros((BSIZE, BSIZE), dtype='int32')
+#     #
+#     # _update_movable(board, movable, 1)
+#     #
+#     #
+#     #
+#     # print(movable)
+#     board = OthelloBoard()
+#     print(board.valid_moves())

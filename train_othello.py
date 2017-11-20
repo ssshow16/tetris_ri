@@ -4,7 +4,7 @@ import random
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from board import Board  # from part 1 of this series
+from board import Board # from part 1 of this series
 
 BATCH_SIZE = 32
 UPDATE_FREQ = 4
@@ -68,8 +68,8 @@ class QNetwork(object):
         # Break apart for Dueling DQN
         self._streamA, self._streamV = tf.split(self._conv8, 2, 1)
         xavier_init = tf.contrib.layers.xavier_initializer()
-        self.AW = tf.Variable(xavier_init([h_size / 2, 64]))
-        self.VW = tf.Variable(xavier_init([h_size / 2, 1]))
+        self.AW = tf.Variable(xavier_init([int(h_size / 2), 64]))
+        self.VW = tf.Variable(xavier_init([int(h_size / 2), 1]))
         self.advantage = tf.matmul(self._streamA, self.AW)
         self.value = tf.matmul(self._streamV, self.VW)
 
@@ -124,8 +124,8 @@ def update_target_graph(tf_vars, tau=TAU):
     target = tau*primary + (1-tau)*target"""
     total_vars = len(tf_vars)
     op_holder = []
-    for idx, var in enumerate(tf_vars[:total_vars / 2]):
-        op_holder.append(tf_vars[idx + total_vars / 2].assign(
+    for idx, var in enumerate(tf_vars[:int(total_vars / 2)]):
+        op_holder.append(tf_vars[idx + int(total_vars / 2)].assign(
             (var.value() * tau) + (
                 (1 - tau) * tf_vars[idx + total_vars // 2].value()
             )))
@@ -180,6 +180,8 @@ if __name__ == '__main__':
                 move_mask[valid_moves] = 1
                 # 1차원으로 변경후 단순히 차원을 하나 높임. np.newaxis
                 move_mask = move_mask.flatten()[np.newaxis, :]
+
+                print(move_mask)
 
                 if b.current_player == coin_flip:
                     # If my move.
