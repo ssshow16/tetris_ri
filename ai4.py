@@ -98,22 +98,16 @@ class AI_4:
         """
         prev_height = self.game.reward.board_height(self.game.board)
 
-        new_state = copy.deepcopy(self.game.board)
-        new_state = self.join_block_into_board(new_state)
-        new_state = self.nomalize_board(new_state)
-        new_state = self.game.reshape_board2(new_state)
+        current_state = copy.deepcopy(self.game.board)
+        current_state = self.join_block_into_board(current_state)
+        # new_state = self.nomalize_board(new_state)
+        # new_state = self.game.reshape_board2(new_state)
+
+        # current_state = self.game.board
 
         states = []
 
         action = action[0]
-
-        """
-         0:LEFT
-         1:RIGTH
-         2:UP
-         3:RETURN
-         :return:
-         """
 
         reward_value = 0
 
@@ -130,12 +124,17 @@ class AI_4:
 
         # if self.game.gameover:
         #     reward_value = -100
-        print("new state", new_state)
+        print("current_state", current_state)
 
-        next_state = self.nomalize_board(self.game.reshape_board())
+        # next_state = self.nomalize_board(self.game.reshape_board())
+        next_state = self.game.board
+
         print("next_state", next_state)
         print("reward_value", reward_value)
         #
-        states.append((new_state, action, reward_value, next_state, self.game.gameover))
+        states.append((current_state, action, reward_value, next_state, self.game.gameover))
 
         return states
+
+    def reset(self):
+        return self.game.board

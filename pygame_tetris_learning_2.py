@@ -5,6 +5,7 @@ from collections import deque
 
 import tensorflow as tf
 from dqn import DQN
+from dqn2 import DQN2
 from pygame_tetris import *
 from ai import *
 from ai4 import *
@@ -21,7 +22,7 @@ learning_rate = 1e-1
 
 def simple_replay_train(DQN, train_batch):
     # 초기화 stack을 생성
-    x_stack = np.empty(0).reshape(0, DQN.input_size)
+    x_stack = np.empty(0).reshape(0, 23, 10)
     y_stack = np.empty(0).reshape(0, DQN.output_size)
 
     for state, action, reward, next_state, done in train_batch:
@@ -31,7 +32,9 @@ def simple_replay_train(DQN, train_batch):
             Q[0, action] = reward
         else:
             # 네트워크를 통해 새로운 상태에 대한 Q 값을 갱신한다
-            Q[0, action] = reward + dis * np.max(DQN.predict(next_state))
+            max_value = np.max(DQN.predict(next_state))
+            next_q_value = reward + dis * max_value
+            Q[0, action] = next_q_value
 
         # 학습을 하지 않고 쌓아두기만 한다.
         y_stack = np.vstack([y_stack, Q])
@@ -128,7 +131,7 @@ class Env(threading.Thread):
         return self.ai.step(state, action)
 
     def reset(self):
-        return self.game.reset()
+        return self.ai.reset()
 
 FINAL_EPSILON = 0.05 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
@@ -137,7 +140,7 @@ EXPLORE = 500. # frames over which to anneal epsilon
 BATCH = 32 # size of minibatch
 
 def main():
-    num_episodes = 10000
+    num_episodes = 30000000
 
     replay_buffer = deque()
 
@@ -148,14 +151,21 @@ def main():
 
     with tf.Session() as sess:
 
-        mainDQN = DQN(sess, input_size, output_size, name="main")
+        mainDQN = DQN2(sess, input_size, output_size, name="main")
         # targetDQN = DQN(sess, input_size, output_size, name="target")
 
         init_op = tf.global_variables_initializer()
         saver = tf.train.Saver()
 
-        copy_ops = get_copy_var_ops(dest_scope_name="target", src_scope_name="main")
+        # copy_ops = get_copy_var_ops(dest_scope_name="target", src_scope_name="main")
         init_op.run()
+
+        checkpoint = tf.train.get_checkpoint_state("model")
+        if checkpoint and checkpoint.model_checkpoint_path:
+            saver.restore(sess, checkpoint.model_checkpoint_path)
+            print("Successfully loaded:", checkpoint.model_checkpoint_path)
+        else:
+            print("Could not find old network weights")
 
         for episode in range(num_episodes):
             # e = 1. / ((episode / 10) + 1)
